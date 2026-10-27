@@ -32,26 +32,34 @@
     return fail("Not registered", "This phone is not registered yet.<br><br>" +
       "Scan your <b>personal setup card</b> once (ask your supervisor), then scan this QR again.");
   }
-
-  var tpl = cfg.FORM_TEMPLATE_URL, T = cfg.TOKENS;
-  if (!/^https:\/\//.test(tpl) || tpl.indexOf(T.area) < 0 || tpl.indexOf(T.action) < 0 || tpl.indexOf(T.staff) < 0) {
-    return fail("Setup error", "The form link in config.js is missing or incomplete. Please tell your supervisor.");
+  if (!/^https:\/\//.test(cfg.SCAN_URL)) {
+    return fail("Setup error", "The scan link in config.js is missing. Please tell your supervisor.");
   }
-  var formUrl = tpl
-    .split(T.area).join(encodeURIComponent(area))
-    .split(T.action).join(encodeURIComponent(action))
-    .split(T.staff).join(encodeURIComponent(staff.id + "|" + staff.key + "|" + staff.name));
 
   var cls = action === "IN" ? "in" : "out";
-  var who = '<div class="who">' + esc(staff.name) + ' (' + esc(staff.id) + ')</div>';
+  var who = '<div class="who">' + esc(staff.name) + '</div>';
 
-  function go() {
-    HK.setLastScan(area, action);
+  function send() {
     show('<div class="card"><span class="badge ' + cls + '">' + action + '</span>' +
-         '<div class="area">' + esc(area) + '</div>' + who +
-         '<p class="msg">Opening form&hellip; press <b>Submit</b>.</p><div class="spinner"></div></div>' +
-         '<a class="btn" href="' + esc(formUrl) + '">Open form</a>');
-    setTimeout(function () { location.replace(formUrl); }, cfg.REDIRECT_DELAY_MS);
+         '<div class="area">' + esc(area) + '</div>' + who + '<div class="spinner"></div></div>');
+    fetch(cfg.SCAN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ area: area, action: action, staff: staff.id + "|" + staff.key + "|" + staff.name })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      HK.setLastScan(area, action);
+      show('<div class="card"><div class="done ' + cls + '">&#10004;</div>' +
+           '<div class="area">Done</div>' +
+           '<span class="badge ' + cls + '">' + action + '</span>' +
+           '<div class="area">' + esc(area) + '</div>' + who + '</div>' +
+           '<p class="small">You can close this page.</p>');
+    }).catch(function () {
+      show('<div class="card"><span class="badge warn">Not sent</span>' +
+           '<p class="msg">No internet connection. Move to Wi-Fi coverage and try again.</p></div>' +
+           '<button class="btn" id="retry">Try again</button>');
+      document.getElementById("retry").onclick = send;
+    });
   }
 
   // Guard against accidental double scans of the same code
@@ -62,10 +70,10 @@
          '<div class="area">' + esc(area) + ' &middot; ' + action + '</div>' + who +
          '<p class="msg">You scanned this ' + ago + ' seconds ago.</p></div>' +
          '<button class="btn" id="again">Record again</button>');
-    document.getElementById("again").onclick = go;
+    document.getElementById("again").onclick = send;
     return;
   }
-  go();
+  send();
 })();
 </script>
 </body>
