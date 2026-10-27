@@ -16,12 +16,13 @@
   var app = document.getElementById("app"), esc = HK.esc;
   var id = (HK.param("id") || "").trim().toUpperCase();
   var name = (HK.param("n") || "").trim();
+  var key = (HK.param("k") || "").trim();
 
   if (HK.param("reset") === "1") {
     HK.clearStaff();
     history.replaceState(null, "", location.pathname);
-  } else if (/^[A-Z0-9-]{1,20}$/.test(id) && name) {
-    HK.setStaff(id, name.slice(0, 60));
+  } else if (/^[A-Z0-9-]{1,20}$/.test(id) && name && /^[A-Za-z0-9]{6,32}$/.test(key)) {
+    HK.setStaff(id, name.replace(/\|/g, " ").slice(0, 60), key);
     // Remove the personal details from the address bar
     history.replaceState(null, "", location.pathname);
   }

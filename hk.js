@@ -31,9 +31,9 @@
   window.HK = {
     getStaff: function () {
       var s = readStore(KEY);
-      return s && s.id ? s : null;
+      return s && s.id && s.key ? s : null;
     },
-    setStaff: function (id, name) { writeStore(KEY, { id: id, name: name, since: new Date().toISOString() }); },
+    setStaff: function (id, name, key) { writeStore(KEY, { id: id, name: name, key: key, since: new Date().toISOString() }); },
     clearStaff: function () { clearStore(KEY); clearStore(LAST); },
     getLastScan: function () { return readStore(LAST); },
     setLastScan: function (area, action) { writeStore(LAST, { area: area, action: action, ts: Date.now() }); },

@@ -40,7 +40,7 @@
   var formUrl = tpl
     .split(T.area).join(encodeURIComponent(area))
     .split(T.action).join(encodeURIComponent(action))
-    .split(T.staff).join(encodeURIComponent(staff.id + " - " + staff.name));
+    .split(T.staff).join(encodeURIComponent(staff.id + "|" + staff.key + "|" + staff.name));
 
   var cls = action === "IN" ? "in" : "out";
   var who = '<div class="who">' + esc(staff.name) + ' (' + esc(staff.id) + ')</div>';
