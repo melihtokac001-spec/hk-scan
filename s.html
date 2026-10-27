@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cleaning Scan</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app"><div class="card"><div class="spinner"></div></div></main>
+<script src="config.js"></script>
+<script src="hk.js"></script>
+<script>
+(function () {
+  var cfg = window.HK_CONFIG, app = document.getElementById("app"), esc = HK.esc;
+  var area = (HK.param("a") || "").trim().toUpperCase();
+  var action = (HK.param("t") || "").trim().toUpperCase();
+
+  function show(html) { app.innerHTML = html; }
+  function fail(title, text) {
+    show('<div class="card"><span class="badge warn">' + esc(title) + '</span>' +
+         '<p class="msg">' + text + '</p></div>');
+  }
+
+  if (!/^[A-Z0-9-]{2,24}$/.test(area) || (action !== "IN" && action !== "OUT")) {
+    return fail("Invalid QR", "This QR code is not valid. Please tell your supervisor.");
+  }
+
+  var staff = HK.getStaff();
+  if (!staff) {
+    return fail("Not registered", "This phone is not registered yet.<br><br>" +
+      "Scan your <b>personal setup card</b> once (ask your supervisor), then scan this QR again.");
+  }
+
+  var tpl = cfg.FORM_TEMPLATE_URL, T = cfg.TOKENS;
+  if (!/^https:\/\//.test(tpl) || tpl.indexOf(T.area) < 0 || tpl.indexOf(T.action) < 0 || tpl.indexOf(T.staff) < 0) {
+    return fail("Setup error", "The form link in config.js is missing or incomplete. Please tell your supervisor.");
+  }
+  var formUrl = tpl
+    .split(T.area).join(encodeURIComponent(area))
+    .split(T.action).join(encodeURIComponent(action))
+    .split(T.staff).join(encodeURIComponent(staff.id + " - " + staff.name));
+
+  var cls = action === "IN" ? "in" : "out";
+  var who = '<div class="who">' + esc(staff.name) + ' (' + esc(staff.id) + ')</div>';
+
+  function go() {
+    HK.setLastScan(area, action);
+    show('<div class="card"><span class="badge ' + cls + '">' + action + '</span>' +
+         '<div class="area">' + esc(area) + '</div>' + who +
+         '<p class="msg">Opening form&hellip; press <b>Submit</b>.</p><div class="spinner"></div></div>' +
+         '<a class="btn" href="' + esc(formUrl) + '">Open form</a>');
+    setTimeout(function () { location.replace(formUrl); }, cfg.REDIRECT_DELAY_MS);
+  }
+
+  // Guard against accidental double scans of the same code
+  var last = HK.getLastScan();
+  var ago = last ? Math.round((Date.now() - last.ts) / 1000) : Infinity;
+  if (last && last.area === area && last.action === action && ago < cfg.REPEAT_WARNING_SECONDS) {
+    show('<div class="card"><span class="badge warn">Already scanned</span>' +
+         '<div class="area">' + esc(area) + ' &middot; ' + action + '</div>' + who +
+         '<p class="msg">You scanned this ' + ago + ' seconds ago.</p></div>' +
+         '<button class="btn" id="again">Record again</button>');
+    document.getElementById("again").onclick = go;
+    return;
+  }
+  go();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Phone Setup</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app"></main>
+<script src="config.js"></script>
+<script src="hk.js"></script>
+<script>
+(function () {
+  var app = document.getElementById("app"), esc = HK.esc;
+  var id = (HK.param("id") || "").trim().toUpperCase();
+  var name = (HK.param("n") || "").trim();
+
+  if (HK.param("reset") === "1") {
+    HK.clearStaff();
+    history.replaceState(null, "", location.pathname);
+  } else if (/^[A-Z0-9-]{1,20}$/.test(id) && name) {
+    HK.setStaff(id, name.slice(0, 60));
+    // Remove the personal details from the address bar
+    history.replaceState(null, "", location.pathname);
+  }
+
+  var s = HK.getStaff();
+  if (s) {
+    app.innerHTML =
+      '<div class="card"><span class="badge ok">&#10003; Registered</span>' +
+      '<div class="area">' + esc(s.name) + '</div><div class="who">' + esc(s.id) + '</div>' +
+      '<p class="msg">This phone is ready. Now just scan the <b>IN</b> and <b>OUT</b> QR codes in each area.</p></div>' +
+      '<p class="small">Wrong name? Ask your supervisor to scan your correct setup card.</p>';
+  } else {
+    app.innerHTML =
+      '<div class="card"><span class="badge warn">Not registered</span>' +
+      '<p class="msg">Scan your personal setup card with this phone\'s camera.</p></div>';
+  }
+})();
+</script>
+</body>
+</html>
